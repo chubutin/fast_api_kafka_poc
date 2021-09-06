@@ -1,4 +1,5 @@
 import datetime
+import random
 from random import randint
 from typing import Set, Any
 from fastapi import FastAPI
@@ -123,22 +124,24 @@ async def consume():
     consumer_2_task = asyncio.create_task(send_consumer_message(consumer_2))
 
 
-async def send_consumer_message(consumer):
+
+
+async def send_consumer_1_message(consumer):
     try:
         # consume messages
         async for msg in consumer:
             # x = json.loads(msg.value)
             now = datetime.datetime.now()
-            log.info(f"{now} Consumed from consumer msg: {msg} content {msg.value}")
+            time_to_wait = print(random.randint(1,3))
+            time.sleep(time_to_wait)
+            log.info(f"{now} Consumed from consumer msg: {msg} content {msg.value} waited {time_to_wait}")
             # update the API state
             _update_state(msg.value)
-            time.sleep(2)
     except Exception as e:
         log.exception('Exception while consuming message')
         # will leave consumer group; perform autocommit if enabled
         log.warning('Stopping consumer')
         await consumer.stop()
-
 
 def _update_state(message: Any) -> None:
     value = json.loads(message)
