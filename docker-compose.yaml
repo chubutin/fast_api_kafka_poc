@@ -1,0 +1,84 @@
+version: '3.7'
+services:
+  app:
+    build:
+      context: .
+      dockerfile: ./Dockerfile
+    container_name: fast_api_kafka_poc
+    command: uvicorn main:app --host 0.0.0.0 --port 80
+    networks:
+      - fast_api_kafka_poc
+    depends_on:
+      - zookeeper
+      - kafka
+    ports:
+      - 8080:80
+    volumes:
+      - ./app:/app
+    environment:
+      KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      KAFKA_CONSUMER_GROUP_PREFIX: group
+      KAFKA_TOPIC: poc_topic
+
+  zookeeper:
+    image: confluentinc/cp-zookeeper:6.2.0
+    container_name: zookeeper
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+      ZOOKEEPER_LOG4J_ROOT_LOGLEVEL: info
+      ZOOKEEPER_TOOLS_LOG4J_LOGLEVEL: info
+    ports:
+        - 22181:2181
+    networks:
+      - fast_api_kafka_poc
+    healthcheck:
+      test: [ "CMD", "nc", "-z", "127.0.0.1", "2181", "||", "exit", "1" ]
+      interval: 2s
+      timeout: 1s
+
+  kafka:
+    image: confluentinc/cp-kafka:6.2.0
+    container_name: kafka
+    depends_on:
+      - zookeeper
+    ports:
+      - 29092:29092
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_LOG4J_ROOT_LOGLEVEL: info
+      KAFKA_TOOLS_LOG4J_LOGLEVEL: info
+      KAFKA_LOG4J_LOGGERS: "kafka:controller=INFO,kafka:request:logger=INFO,kafka:log=INFO"
+    networks:
+      - fast_api_kafka_poc
+    healthcheck:
+      test: [ "CMD", "nc", "-z", "127.0.0.1", "29092", "||", "exit", "1" ]
+      interval: 2s
+      timeout: 1s
+      start_period: 30s
+
+  kafka-ui:
+    image: provectuslabs/kafka-ui:latest
+    container_name: kafka-ui
+    ports:
+    - 9000:8080
+    depends_on:
+      - kafka
+    environment:
+      KAFKA_CLUSTERS_0_NAME: kafka_cluster
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:29092
+      KAFKA_CLUSTERS_0_ZOOKEEPER: zookeeper:2181
+      KAFKA_CLUSTERS_0_READONLY: 1
+      LOGGING_LEVEL_COM_PROVECTUS: info
+    networks:
+      - fast_api_kafka_poc
+
+
+networks:
+  fast_api_kafka_poc:
+    driver: bridge
