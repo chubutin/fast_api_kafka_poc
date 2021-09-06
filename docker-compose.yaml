@@ -51,9 +51,10 @@ services:
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT
       KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
-      KAFKA_LOG4J_ROOT_LOGLEVEL: info
-      KAFKA_TOOLS_LOG4J_LOGLEVEL: info
-      KAFKA_LOG4J_LOGGERS: "kafka:controller=INFO,kafka:request:logger=INFO,kafka:log=INFO"
+      KAFKA_LOG4J_ROOT_LOGLEVEL: INFO
+      KAFKA_TOOLS_LOG4J_LOGLEVEL: INFO
+      KAFKA_LOG4J_LOGGERS: org.apache.zookeeper=ERROR,org.apache.kafka=ERROR,kafka=ERROR,kafka.cluster=ERROR,kafka.controller=ERROR,kafka.coordinator=ERROR,kafka.log=ERROR,kafka.server=ERROR,kafka.zookeeper=ERROR,state.change.logger=ERROR
+
     networks:
       - fast_api_kafka_poc
     healthcheck:
@@ -73,7 +74,7 @@ services:
       KAFKA_CLUSTERS_0_NAME: kafka_cluster
       KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:29092
       KAFKA_CLUSTERS_0_ZOOKEEPER: zookeeper:2181
-      KAFKA_CLUSTERS_0_READONLY: 1
+      KAFKA_CLUSTERS_0_READONLY: 0
       LOGGING_LEVEL_COM_PROVECTUS: info
     networks:
       - fast_api_kafka_poc
