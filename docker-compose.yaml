@@ -20,6 +20,24 @@ services:
       KAFKA_CONSUMER_GROUP_PREFIX: group
       KAFKA_TOPIC: poc_topic
 
+  consumer:
+    build:
+      context: .
+      dockerfile: ./Dockerfile
+    container_name: fast_api_consumer
+    command: uvicorn main:app --host 0.0.0.0 --port 80
+    networks:
+      - fast_api_kafka_poc
+    depends_on:
+      - zookeeper
+      - kafka
+    volumes:
+      - ./app_consumer:/app
+    environment:
+      KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      KAFKA_CONSUMER_GROUP_PREFIX: group
+      KAFKA_TOPIC: poc_topic
+
   zookeeper:
     image: confluentinc/cp-zookeeper:6.2.0
     container_name: zookeeper
