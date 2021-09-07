@@ -29,7 +29,7 @@ http://localhost:8000/send_message is a mapped REST endpoint for sending message
 
 If the topic is created by aiokafka Producer it will only have one partition per topic, this means only one consumer
 will be connected to the topic (per group-id). If you want multiple consumers per topic/group you need to create the topic
-on Kafka-UI
+on Kafka-UI and assign at least two partitions to the topic `poc_topic`
 
 ### References
 
