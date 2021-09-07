@@ -11,8 +11,9 @@ The app always fail to start, even though it depends on kafka and zookeeper and 
 So, after starting docker-compose you'll see the app failing. In this case, start the app as a service alone
 
 
-`docker-compose up --build -d app`
+`docker-compose up --build -d app consumer`
 
+Note: consumer app has replica=2 on docker compose in order to test multi consumers per topic and groups
 
 ### Check Kafka status
 
@@ -24,7 +25,11 @@ You can check the status for your local Broker acessing to http://localhost:9000
 
 http://localhost:8000/send_message is a mapped REST endpoint for sending messages to the broker
 
+### Considerations for MultiProcessing on message consumption
 
+If the topic is created by aiokafka Producer it will only have one partition per topic, this means only one consumer
+will be connected to the topic (per group-id). If you want multiple consumers per topic/group you need to create the topic
+on Kafka-UI
 
 ### References
 

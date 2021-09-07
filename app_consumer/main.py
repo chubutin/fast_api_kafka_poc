@@ -1,17 +1,16 @@
-import datetime
-import random
-from random import randint
-from typing import Set, Any
-from fastapi import FastAPI
-from kafka import TopicPartition
-
-import uvicorn
-import aiokafka
 import asyncio
+import datetime
 import json
 import logging
 import os
+import random
 import time
+from random import randint
+from typing import Set, Any
+
+import aiokafka
+from fastapi import FastAPI
+from kafka import TopicPartition
 
 app = FastAPI()
 
@@ -56,7 +55,6 @@ async def shutdown_event():
 
 async def initialize(init_topics_from_start=True):
     loop = asyncio.get_event_loop()
-    # global producer
     global consumer_1
     global consumer_2
 
@@ -65,59 +63,61 @@ async def initialize(init_topics_from_start=True):
               f' and using bootstrap servers {KAFKA_BOOTSTRAP_SERVERS}')
     consumer_1 = aiokafka.AIOKafkaConsumer(KAFKA_TOPIC, loop=loop,
                                          bootstrap_servers=KAFKA_BOOTSTRAP_SERVERS,
+                                         enable_auto_commit=True,
                                          group_id=f'{KAFKA_CONSUMER_GROUP_PREFIX}-1')
     consumer_2 = aiokafka.AIOKafkaConsumer(KAFKA_TOPIC, loop=loop,
                                          bootstrap_servers=KAFKA_BOOTSTRAP_SERVERS,
+                                         enable_auto_commit=True,
                                          group_id=f'{KAFKA_CONSUMER_GROUP_PREFIX}-2')
     # get cluster layout and join group
     await consumer_1.start()
     await consumer_2.start()
     consumers = [consumer_1, consumer_2]
 
-    for consumer in consumers:
-        partitions: Set[TopicPartition] = consumer.assignment()
-
-        nr_partitions = len(partitions)
-        if nr_partitions != 1:
-            log.warning(f'Found {nr_partitions} partitions for topic {KAFKA_TOPIC}. Expecting '
-                        f'only one, remaining partitions will be ignored!')
-        for tp in partitions:
-
-            # get the log_end_offset
-            end_offset_dict = await consumer.end_offsets([tp])
-            end_offset = end_offset_dict[tp]
-
-            if init_topics_from_start:
-
-                if end_offset == 0:
-                    log.warning(f'Topic ({KAFKA_TOPIC}) has no messages (log_end_offset: '
-                                f'{end_offset}), skipping initialization ...')
-                    return
-
-                log.debug(f'Found log_end_offset: {end_offset} seeking to {end_offset-1}')
-                consumer.seek(tp, end_offset-1)
-                msg = await consumer.getone()
-                log.info(f'Initializing API with data from msg: {msg}')
-
-                # update the API state
-                _update_state(msg.value)
+    # for consumer in consumers:
+    #     partitions: Set[TopicPartition] = consumer.assignment()
+    #
+    #     nr_partitions = len(partitions)
+    #     if nr_partitions != 1:
+    #         log.warning(f'Found {nr_partitions} partitions for topic {KAFKA_TOPIC}. Expecting '
+    #                     f'only one, remaining partitions will be ignored!')
+    #     for tp in partitions:
+    #
+    #         # get the log_end_offset
+    #         end_offset_dict = await consumer.end_offsets([tp])
+    #         end_offset = end_offset_dict[tp]
+    #
+    #         if init_topics_from_start:
+    #
+    #             if end_offset == 0:
+    #                 log.warning(f'Topic ({KAFKA_TOPIC}) has no messages (log_end_offset: '
+    #                             f'{end_offset}), skipping initialization ...')
+    #                 return
+    #
+    #             log.debug(f'Found log_end_offset: {end_offset} seeking to {end_offset-1}')
+    #             consumer.seek(tp, end_offset-1)
+    #             msg = await consumer.getone()
+    #             log.info(f'Initializing API with data from msg: {msg}')
+    #
+    #             # update the API state
+    #             _update_state(msg.value)
 
 
 async def consume():
     global consumer_task
-    consumer_1_task = asyncio.create_task(read_consumer_message(consumer_1))
-    consumer_2_task = asyncio.create_task(read_consumer_message(consumer_2))
+    consumer_1_task = asyncio.create_task(read_consumer_message(consumer_id=1, consumer=consumer_1))
+    consumer_2_task = asyncio.create_task(read_consumer_message(consumer_id=2, consumer=consumer_2))
 
 
-async def read_consumer_message(consumer):
+async def read_consumer_message(consumer_id, consumer):
     try:
         # consume messages
         async for msg in consumer:
             # x = json.loads(msg.value)
             now = datetime.datetime.now()
             time_to_wait = random.randrange(1,3)
-            time.sleep(time_to_wait)
-            log.info(f"Consumed from consumer msg: {msg} content {msg.value} started at {now} waited {time_to_wait}")
+            # time.sleep(time_to_wait)
+            log.info(f"Consumed from consumer {consumer_id} msg: {msg} content {msg.value} started at {now} waited {time_to_wait}")
             # update the API state
             _update_state(msg.value)
     except Exception as e:

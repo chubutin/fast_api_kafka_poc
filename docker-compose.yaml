@@ -3,8 +3,8 @@ services:
   app:
     build:
       context: .
-      dockerfile: ./Dockerfile
-    container_name: fast_api_kafka_poc
+      dockerfile: docker/producer/Dockerfile
+    container_name: fast_api_kafka_producer
     command: uvicorn main:app --host 0.0.0.0 --port 80
     networks:
       - fast_api_kafka_poc
@@ -23,17 +23,21 @@ services:
   consumer:
     build:
       context: .
-      dockerfile: ./Dockerfile
-    container_name: fast_api_consumer
+      dockerfile: docker/consumer/Dockerfile
+#    container_name: fast_api_consumer
     command: uvicorn main:app --host 0.0.0.0 --port 80
+    deploy:
+      replicas: 2
     networks:
       - fast_api_kafka_poc
     depends_on:
       - zookeeper
       - kafka
+      - app
     volumes:
       - ./app_consumer:/app
     environment:
+      PYTHONUNBUFFERED: 1
       KAFKA_BOOTSTRAP_SERVERS: kafka:29092
       KAFKA_CONSUMER_GROUP_PREFIX: group
       KAFKA_TOPIC: poc_topic
